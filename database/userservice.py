@@ -22,16 +22,30 @@ def get_all_users_db():
 def get_exact_user_db(user_id):
     db = next(get_db())
 
-    exact_user = db.query(User).sorted_by(id=user_id).first()
+    exact_user = db.query(User).filter_by(id=user_id).first()
     if exact_user:
         return exact_user
+    return False
+
+
+def update_user_db(user_id, change_info, new_info):
+    db = next(get_db())
+
+    user = db.query(User).filter_by(id=user_id).first()
+    if user:
+        if change_info == "username":
+            user.username = new_info
+        elif change_info == 'password':
+            user.password = new_info
+        db.commit()
+        return True
     return False
 
 # Удаление пользователя
 def delete_user_db(user_id):
     db = next(get_db())
 
-    exact_user = get_exact_user_db(user_id)
+    exact_user = db.query(User).filter_by(id=user_id).first()
     if exact_user:
         db.delete(exact_user)
         db.commit()

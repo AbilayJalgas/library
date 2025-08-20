@@ -1,25 +1,12 @@
 from database import get_db
 from database.models import Book
-from fastapi import Depends, HTTPException
 
-
-
-
-roles = {
-    "admin": {"can_add_book": True, "can_delete_book": True},
-    "user": {"can_add_book": False, "can_delete_book": False}
-}
-
-def get_current_role(role: str):
-    if role not in roles:
-        raise HTTPException(status_code=403, detail="Нет доступа")
-    return roles[role]
 
 # Функция для добавления книги
-def add_book_db(title, author, year, available, gener, role=Depends(get_current_role)):
+def add_book_db(title, author, year, available, genre, role):
     db = next(get_db())
 
-    add_book = Book(title=title, author=author, year=year, available=available, gener=gener)
+    add_book = Book(title=title, author=author, year=year, available=available, genre=genre)
     if not role['can_add_book']:
         return "Только админ может добавлять книги"
     db.add(add_book)
@@ -27,7 +14,7 @@ def add_book_db(title, author, year, available, gener, role=Depends(get_current_
     return "Книга успешно добавлена"
 
 # Функция для удаления книги
-def delete_book_db(book_id, role=Depends(get_current_role)):
+def delete_book_db(book_id, role):
     db = next(get_db())
 
     book = db.query(Book).filter_by(id=book_id).first()
@@ -40,21 +27,29 @@ def delete_book_db(book_id, role=Depends(get_current_role)):
     return False
 
 # Функция для получения конкретной или всех книг
-def get_all_or_exact_book_db(book_id):
+def get_all_book_db():
+    db = next(get_db())
+
+    all_book = db.query(Book).all()
+    return all_book
+
+
+def get_exact_book_db(book_id):
     db = next(get_db())
 
     exact_book = db.query(Book).filter_by(id=book_id).first()
     if exact_book:
         return exact_book
-    else:
-        return db.query(Book).all()
+    return False
 
 # Функция для редактирования книги
-def update_book_db(book_id, change_info, new_info):
+def update_book_db(book_id, change_info, new_info, role):
     db = next(get_db())
 
-    exact_book = db.query(Book).filter_by(book_id).first()
+    exact_book = db.query(Book).filter_by(id=book_id).first()
     if exact_book:
+        if not role["can_update_book"]:
+            return "У вас нет доступа изменять книги"
         if change_info == "title":
             exact_book.title = new_info
         elif change_info == "author":
